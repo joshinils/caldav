@@ -18,6 +18,23 @@ from pathlib import Path
 from typing import Any
 
 
+def get_feature_preset_name(features: Any) -> str | None:
+    """Check if features matches a known preset and return its name."""
+    try:
+        from caldav import compatibility_hints
+
+        # Check all dict attributes in compatibility_hints
+        for name in dir(compatibility_hints):
+            if name.startswith("_"):
+                continue
+            preset = getattr(compatibility_hints, name)
+            if isinstance(preset, dict) and features is preset:
+                return f"compatibility_hints.{name}"
+    except ImportError:
+        pass
+    return None
+
+
 def load_conf_private(path: Path) -> dict[str, Any]:
     """Load configuration from conf_private.py file."""
     import importlib.util
@@ -61,9 +78,13 @@ def convert_to_yaml_config(conf_private: Any) -> dict[str, Any]:
                 if old_key in server:
                     config[new_key] = server[old_key]
 
-            # Handle features list
+            # Handle features - check if it's a known preset
             if "features" in server:
-                config["features"] = server["features"]
+                preset_name = get_feature_preset_name(server["features"])
+                if preset_name:
+                    config["features"] = preset_name
+                else:
+                    config["features"] = server["features"]
 
             servers[key] = config
 
