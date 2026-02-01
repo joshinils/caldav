@@ -12,6 +12,7 @@ The old conf_private.py format is deprecated and will be removed in v3.0.
 """
 
 import argparse
+import stat
 import sys
 from pathlib import Path
 from typing import Any
@@ -230,7 +231,9 @@ def main():
         print(yaml_content)
     else:
         output_path.write_text(yaml_content)
-        print(f"Written to {output_path}")
+        # Set restrictive permissions since file may contain passwords
+        output_path.chmod(stat.S_IRUSR | stat.S_IWUSR)  # 0600
+        print(f"Written to {output_path} (mode 0600)")
         print(f"\nYou can now delete {input_path} (it's deprecated and will be ignored)")
 
 
