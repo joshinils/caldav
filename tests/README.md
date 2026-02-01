@@ -51,7 +51,12 @@ these locations in order:
    cp tests/test_servers.yaml.example tests/test_servers.yaml
    ```
 
-2. Edit `test_servers.yaml` to enable/configure servers:
+2. If you want to populate it with private passwords, remember to protect it:
+   ```sh
+   chmod og-r tests/test_servers.yaml
+   ```
+
+3. Edit `test_servers.yaml` to enable/configure servers:
    ```yaml
    test-servers:
      radicale:
