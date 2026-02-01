@@ -17,6 +17,40 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Known feature preset names from compatibility_hints
+KNOWN_FEATURE_PRESETS = [
+    "fastmail",
+    "posteo",
+    "purelymail",
+    "gmx",
+    "icloud",
+    "google",
+    "yahoo",
+    "zoho",
+    "mailbox_org",
+]
+
+
+def get_feature_preset_name(features: Any) -> str | None:
+    """Check if features matches a known preset and return its name."""
+    try:
+        from caldav import compatibility_hints
+
+        for name in KNOWN_FEATURE_PRESETS:
+            if hasattr(compatibility_hints, name):
+                preset = getattr(compatibility_hints, name)
+                if features is preset:  # Identity check, not equality
+                    return f"compatibility_hints.{name}"
+        # Also check for any dict attribute that matches
+        for name in dir(compatibility_hints):
+            if not name.startswith("_"):
+                preset = getattr(compatibility_hints, name)
+                if isinstance(preset, dict) and features is preset:
+                    return f"compatibility_hints.{name}"
+    except ImportError:
+        pass
+    return None
+
 
 def get_feature_preset_name(features: Any) -> str | None:
     """Check if features matches a known preset and return its name."""
