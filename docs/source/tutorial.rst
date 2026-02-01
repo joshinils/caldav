@@ -43,7 +43,11 @@ without manually creating a client and principal:
         password="secret"
     )
     for cal in calendars:
-        print(f"Found calendar: {cal.name}")
+        print(f"Found calendar: {cal.get_display_name()}")
+
+    # Close the connection when done
+    if calendars:
+        calendars[0].client.close()
 
     # Get a specific calendar by name
     work_calendar = get_calendar(
@@ -52,6 +56,9 @@ without manually creating a client and principal:
         password="secret",
         calendar_name="Work"
     )
+    # ... use work_calendar ...
+    if work_calendar:
+        work_calendar.client.close()
 
     # Get calendars by URL or ID
     calendars = get_calendars(
@@ -60,6 +67,9 @@ without manually creating a client and principal:
         password="secret",
         calendar_url="/calendars/alice/personal/"  # or just "personal"
     )
+    # ... use calendars ...
+    if calendars:
+        calendars[0].client.close()
 
 These functions also support reading configuration from environment
 variables (``CALDAV_URL``, ``CALDAV_USERNAME``, ``CALDAV_PASSWORD``)
@@ -69,11 +79,14 @@ or config files, so you can simply call:
 
     from caldav import get_calendars
     calendars = get_calendars()  # Uses env vars or config file
+    # ... use calendars ...
+    if calendars:
+        calendars[0].client.close()
 
 The Traditional Approach
 ------------------------
 
-As of 2.0, it's recommended to start initiating a
+As of 3.0, it's recommended to start initiating a
 :class:`caldav.davclient.DAVClient` object using the ``get_davclient``
 function, go from there to get a
 :class:`caldav.collection.Principal`-object, and from there find a
