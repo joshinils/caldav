@@ -1042,29 +1042,34 @@ def get_calendars(**kwargs) -> list["Calendar"]:
     return _base_get_calendars(DAVClient, **kwargs)
 
 
-def get_calendar(**kwargs) -> Optional["Calendar"]:
+def get_calendar(**kwargs) -> "CalendarResult":
     """
     Get a single calendar from a CalDAV server.
 
     This is a convenience function for the common case where only one
-    calendar is needed. It returns the first matching calendar or None.
+    calendar is needed. Returns a CalendarResult that can be used as a
+    context manager.
 
     Args:
         Same as :func:`get_calendars`.
 
     Returns:
-        A single Calendar object, or None if no calendars found.
+        CalendarResult wrapping a Calendar object (or None if not found).
+        Use as context manager to auto-close the connection.
 
     Example::
 
         from caldav import get_calendar
 
-        calendar = get_calendar(calendar_name="Work", url="...", ...)
-        if calendar:
-            events = calendar.get_events()
+        with get_calendar(calendar_name="Work", url="...", ...) as calendar:
+            if calendar:
+                events = calendar.date_search(start=..., end=...)
     """
+    from caldav.base_client import CalendarResult
+
     calendars = _base_get_calendars(DAVClient, **kwargs)
-    return calendars[0] if calendars else None
+    calendar = calendars[0] if calendars else None
+    return CalendarResult(calendar, client=calendars.client)
 
 
 def get_davclient(**kwargs) -> Optional["DAVClient"]:

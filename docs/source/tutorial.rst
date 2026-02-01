@@ -30,58 +30,53 @@ Quick Start: Getting Calendars Directly
 ---------------------------------------
 
 As of 3.0, there are convenience functions to get calendars directly
-without manually creating a client and principal:
+without manually creating a client and principal. Use them as context
+managers to ensure the connection is properly closed:
 
 .. code-block:: python
 
     from caldav import get_calendars, get_calendar
 
-    # Get all calendars
-    calendars = get_calendars(
+    # Get all calendars (context manager auto-closes connection)
+    with get_calendars(
         url="https://caldav.example.com/",
         username="alice",
         password="secret"
-    )
-    for cal in calendars:
-        print(f"Found calendar: {cal.get_display_name()}")
-
-    # Close the connection when done
-    if calendars:
-        calendars[0].client.close()
+    ) as calendars:
+        for cal in calendars:
+            print(f"Found calendar: {cal.get_display_name()}")
 
     # Get a specific calendar by name
-    work_calendar = get_calendar(
+    with get_calendar(
         url="https://caldav.example.com/",
         username="alice",
         password="secret",
         calendar_name="Work"
-    )
-    # ... use work_calendar ...
-    if work_calendar:
-        work_calendar.client.close()
+    ) as work_calendar:
+        if work_calendar:
+            events = work_calendar.date_search(start=..., end=...)
 
     # Get calendars by URL or ID
-    calendars = get_calendars(
+    with get_calendars(
         url="https://caldav.example.com/",
         username="alice",
         password="secret",
         calendar_url="/calendars/alice/personal/"  # or just "personal"
-    )
-    # ... use calendars ...
-    if calendars:
-        calendars[0].client.close()
+    ) as calendars:
+        # ... use calendars ...
+        pass
 
 These functions also support reading configuration from environment
 variables (``CALDAV_URL``, ``CALDAV_USERNAME``, ``CALDAV_PASSWORD``)
-or config files, so you can simply call:
+or config files:
 
 .. code-block:: python
 
     from caldav import get_calendars
-    calendars = get_calendars()  # Uses env vars or config file
-    # ... use calendars ...
-    if calendars:
-        calendars[0].client.close()
+
+    with get_calendars() as calendars:  # Uses env vars or config file
+        for cal in calendars:
+            print(cal.get_display_name())
 
 The Traditional Approach
 ------------------------

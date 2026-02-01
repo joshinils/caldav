@@ -141,6 +141,123 @@ class BaseDAVClient(ABC):
         pass
 
 
+class CalendarCollection(list):
+    """
+    A list of calendars that can be used as a context manager.
+
+    This class extends list to provide automatic cleanup of the underlying
+    DAV client connection when used with a `with` statement.
+
+    Example::
+
+        from caldav import get_calendars
+
+        # As context manager (recommended) - auto-closes connection
+        with get_calendars(url="...", username="...", password="...") as calendars:
+            for cal in calendars:
+                print(cal.get_display_name())
+
+        # Without context manager - must close manually
+        calendars = get_calendars(url="...", username="...", password="...")
+        # ... use calendars ...
+        if calendars:
+            calendars[0].client.close()
+    """
+
+    def __init__(self, calendars: list | None = None, client: Any = None):
+        super().__init__(calendars or [])
+        self._client = client
+
+    @property
+    def client(self):
+        """The underlying DAV client, if available."""
+        if self._client:
+            return self._client
+        # Fall back to getting client from first calendar
+        if self:
+            return self[0].client
+        return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        """Close the underlying DAV client connection."""
+        if self._client:
+            self._client.close()
+        elif self:
+            self[0].client.close()
+
+
+class CalendarResult:
+    """
+    A single calendar result that can be used as a context manager.
+
+    This wrapper holds a single Calendar (or None) and provides automatic
+    cleanup of the underlying DAV client connection when used with a
+    `with` statement.
+
+    Example::
+
+        from caldav import get_calendar
+
+        # As context manager (recommended) - auto-closes connection
+        with get_calendar(calendar_name="Work", url="...") as calendar:
+            if calendar:
+                events = calendar.date_search(start=..., end=...)
+
+        # Without context manager
+        result = get_calendar(calendar_name="Work", url="...")
+        calendar = result.calendar  # or just use result directly
+        # ... use calendar ...
+        result.close()
+    """
+
+    def __init__(self, calendar: Any = None, client: Any = None):
+        self._calendar = calendar
+        self._client = client
+
+    @property
+    def calendar(self):
+        """The calendar, or None if not found."""
+        return self._calendar
+
+    @property
+    def client(self):
+        """The underlying DAV client."""
+        if self._client:
+            return self._client
+        if self._calendar:
+            return self._calendar.client
+        return None
+
+    def __enter__(self):
+        return self._calendar
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        """Close the underlying DAV client connection."""
+        client = self.client
+        if client:
+            client.close()
+
+    # Allow using the result directly as if it were the calendar
+    def __bool__(self):
+        return self._calendar is not None
+
+    def __getattr__(self, name):
+        if self._calendar is None:
+            raise AttributeError(f"No calendar found, cannot access '{name}'")
+        return getattr(self._calendar, name)
+
+
 def _normalize_to_list(obj: Any) -> list:
     """Convert a string or None to a list for uniform handling."""
     if not obj:
@@ -162,13 +279,16 @@ def get_calendars(
     name: str | None = None,
     raise_errors: bool = False,
     **config_data,
-) -> list[Calendar]:
+) -> CalendarCollection:
     """
     Get calendars from a CalDAV server with configuration from multiple sources.
 
     This function creates a client, connects to the server, and returns
     calendar objects based on the specified criteria. Configuration is read
     from various sources (explicit parameters, environment variables, config files).
+
+    The returned CalendarCollection can be used as a context manager to ensure
+    the underlying connection is properly closed.
 
     Args:
         client_class: The client class to use (DAVClient or AsyncDAVClient).
@@ -187,22 +307,20 @@ def get_calendars(
         **config_data: Connection parameters (url, username, password, etc.)
 
     Returns:
-        List of Calendar objects matching the criteria.
+        CalendarCollection of Calendar objects matching the criteria.
         If no calendar_url or calendar_name specified, returns all calendars.
 
     Example::
 
-        from caldav import DAVClient
-        from caldav.base_client import get_calendars
+        from caldav import get_calendars
 
-        # Get all calendars
-        calendars = get_calendars(DAVClient, url="https://...", username="...", password="...")
+        # As context manager (recommended)
+        with get_calendars(url="https://...", username="...", password="...") as calendars:
+            for cal in calendars:
+                print(cal.get_display_name())
 
-        # Get specific calendars by name
-        calendars = get_calendars(DAVClient, calendar_name=["Work", "Personal"], ...)
-
-        # Get specific calendar by URL or ID
-        calendars = get_calendars(DAVClient, calendar_url="/calendars/user/work/", ...)
+        # Without context manager - connection closed on garbage collection
+        calendars = get_calendars(url="https://...", username="...", password="...")
     """
     import logging
 
@@ -236,12 +354,12 @@ def get_calendars(
     if client is None:
         if raise_errors:
             raise ValueError("Could not create DAV client - no configuration found")
-        return []
+        return CalendarCollection()
 
     # Get principal
     principal = _try(client.principal, {}, "getting principal")
     if not principal:
-        return []
+        return CalendarCollection(client=client)
 
     calendars = []
     calendar_urls = _normalize_to_list(calendar_url)
@@ -274,7 +392,7 @@ def get_calendars(
         if all_cals:
             calendars = all_cals
 
-    return calendars
+    return CalendarCollection(calendars, client=client)
 
 
 def get_davclient(
