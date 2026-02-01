@@ -174,4 +174,7 @@ filterwarnings = [
 
     # Radicale uses deprecated importlib.abc.Traversable (Python 3.14 removal)
     "ignore:.*importlib.abc.Traversable.*:DeprecationWarning",
+
+    # Show conf_private.py deprecation warning once (not as error) during migration period
+    "once:conf_private.py is deprecated:DeprecationWarning",
 ]

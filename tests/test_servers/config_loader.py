@@ -91,7 +91,7 @@ def _load_from_conf_private() -> dict[str, dict[str, Any]]:
             warnings.warn(
                 "conf_private.py is deprecated for test server configuration. "
                 "Please migrate to tests/test_servers.yaml. "
-                "See docs/testing.rst for the new format.",
+                "See tests/README.md for the new format.",
                 DeprecationWarning,
                 stacklevel=3,
             )
