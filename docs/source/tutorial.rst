@@ -33,6 +33,7 @@ As of 3.0, there are convenience functions to get calendars directly
 without manually creating a client and principal. Use them as context
 managers to ensure the connection is properly closed:
 
+.. ignore-next-block
 .. code-block:: python
 
     from caldav import get_calendars, get_calendar
