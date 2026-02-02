@@ -226,7 +226,8 @@ def get_registry() -> ServerRegistry:
     """
     Get the global server registry instance.
 
-    Creates the registry on first call and runs auto-discovery.
+    Creates the registry on first call, runs auto-discovery, and loads
+    configuration from the config file (if present).
 
     Returns:
         The global ServerRegistry instance
@@ -235,6 +236,14 @@ def get_registry() -> ServerRegistry:
     if _global_registry is None:
         _global_registry = ServerRegistry()
         _global_registry.auto_discover()
+
+        # Load configuration from config file
+        from .config_loader import load_test_server_config
+
+        config = load_test_server_config()
+        if config:
+            _global_registry.load_from_config(config)
+
     return _global_registry
 
 

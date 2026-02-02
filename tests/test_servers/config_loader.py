@@ -13,11 +13,17 @@ from caldav.config import expand_env_vars, read_config
 
 # Default config file locations (in priority order)
 DEFAULT_CONFIG_LOCATIONS = [
-    "tests/test_servers.yaml",
-    "tests/test_servers.json",
+    "tests/caldav_test_servers.yaml",
+    "tests/caldav_test_servers.json",
     "~/.config/caldav/test_servers.yaml",
     "~/.config/caldav/test_servers.json",
 ]
+
+
+class ConfigParseError(Exception):
+    """Raised when a config file exists but cannot be parsed."""
+
+    pass
 
 
 def load_test_server_config(
@@ -36,6 +42,9 @@ def load_test_server_config(
         Dict mapping server names to their configuration dicts.
         Empty dict if no configuration found.
 
+    Raises:
+        ConfigParseError: If a config file exists but cannot be parsed.
+
     Example config file (YAML):
         test-servers:
           radicale:
@@ -49,8 +58,19 @@ def load_test_server_config(
     """
     # Try explicit config file first
     if config_file:
-        cfg = read_config(config_file)
-        if cfg:
+        path = Path(config_file).expanduser()
+        if path.exists():
+            try:
+                cfg = read_config(config_file)
+            except Exception as e:
+                raise ConfigParseError(
+                    f"Config file '{config_file}' exists but could not be parsed: {e}"
+                ) from e
+            if not cfg:
+                raise ConfigParseError(
+                    f"Config file '{config_file}' exists but could not be parsed. "
+                    "Check the YAML/JSON syntax."
+                )
             servers = cfg.get("test-servers", cfg)
             return expand_env_vars(servers)
 
@@ -58,10 +78,19 @@ def load_test_server_config(
     for loc in DEFAULT_CONFIG_LOCATIONS:
         path = Path(loc).expanduser()
         if path.exists():
-            cfg = read_config(str(path))
-            if cfg:
-                servers = cfg.get("test-servers", cfg)
-                return expand_env_vars(servers)
+            try:
+                cfg = read_config(str(path))
+            except Exception as e:
+                raise ConfigParseError(
+                    f"Config file '{path}' exists but could not be parsed: {e}"
+                ) from e
+            if not cfg:
+                raise ConfigParseError(
+                    f"Config file '{path}' exists but could not be parsed. "
+                    "Check the YAML/JSON syntax."
+                )
+            servers = cfg.get("test-servers", cfg)
+            return expand_env_vars(servers)
 
     # Fallback to conf_private.py with deprecation warning
     return _load_from_conf_private()
@@ -90,7 +119,7 @@ def _load_from_conf_private() -> dict[str, dict[str, Any]]:
 
             warnings.warn(
                 "conf_private.py is deprecated for test server configuration. "
-                "Please migrate to tests/test_servers.yaml. "
+                "Please migrate to tests/caldav_test_servers.yaml. "
                 "See tests/README.md for the new format.",
                 DeprecationWarning,
                 stacklevel=3,

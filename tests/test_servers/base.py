@@ -377,13 +377,34 @@ class ExternalTestServer(TestServer):
 
     External servers are already running somewhere - we don't start or stop them.
     This is used for testing against real CalDAV servers configured by the user.
+
+    The URL can be provided directly via the 'url' config key, or constructed
+    from the 'auto-connect.url' feature (with domain, scheme, basepath keys).
     """
 
     server_type = "external"
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         super().__init__(config)
-        self._url = self.config.get("url", "")
+        self._url = self._construct_url()
+
+    def _construct_url(self) -> str:
+        """Construct URL from config, using auto-connect.url feature if needed."""
+        # First try explicit URL
+        if url := self.config.get("url"):
+            return url
+
+        # Try to construct from auto-connect.url feature
+        features = self.config.get("features", {})
+        if isinstance(features, dict):
+            auto_connect = features.get("auto-connect.url", {})
+            if isinstance(auto_connect, dict) and "domain" in auto_connect:
+                scheme = auto_connect.get("scheme", "https")
+                domain = auto_connect["domain"]
+                basepath = auto_connect.get("basepath", "")
+                return f"{scheme}://{domain}{basepath}"
+
+        return ""
 
     @property
     def url(self) -> str:
@@ -391,7 +412,9 @@ class ExternalTestServer(TestServer):
 
     def start(self) -> None:
         """External servers are already running - nothing to do."""
-        if not self.is_accessible():
+        # Skip accessibility check if we don't have a URL - the caldav library
+        # will handle auto-discovery via features
+        if self.url and not self.is_accessible():
             raise RuntimeError(f"External server {self.name} at {self.url} is not accessible")
         self._started = True
 
@@ -402,8 +425,20 @@ class ExternalTestServer(TestServer):
 
     def is_accessible(self) -> bool:
         """Check if the external server is accessible."""
+        if not self.url:
+            return True  # Can't check without URL, assume accessible
         try:
             response = requests.get(self.url, timeout=DEFAULT_HTTP_TIMEOUT)
             return response.status_code in (200, 401, 403, 404)
         except Exception:
             return False
+
+
+# Deferred registration to avoid circular imports
+def _register_external_server() -> None:
+    from .registry import register_server_class
+
+    register_server_class("external", ExternalTestServer)
+
+
+_register_external_server()

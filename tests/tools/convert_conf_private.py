@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Convert legacy conf_private.py to new test_servers.yaml format.
+Convert legacy conf_private.py to new caldav_test_servers.yaml format.
 
 Usage:
     python tests/tools/convert_conf_private.py [conf_private.py] [output.yaml]
 
 If no arguments given, looks for tests/conf_private.py and outputs to
-tests/test_servers.yaml.
+tests/caldav_test_servers.yaml.
 
 The old conf_private.py format is deprecated and will be removed in v3.0.
 """
@@ -233,7 +233,7 @@ def format_value(value: Any) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert conf_private.py to test_servers.yaml")
+    parser = argparse.ArgumentParser(description="Convert conf_private.py to caldav_test_servers.yaml")
     parser.add_argument(
         "input",
         nargs="?",
@@ -243,8 +243,8 @@ def main():
     parser.add_argument(
         "output",
         nargs="?",
-        default="tests/test_servers.yaml",
-        help="Output YAML file (default: tests/test_servers.yaml)",
+        default="tests/caldav_test_servers.yaml",
+        help="Output YAML file (default: tests/caldav_test_servers.yaml)",
     )
     parser.add_argument(
         "--dry-run",
@@ -263,7 +263,7 @@ def main():
             "\nIf you don't have a conf_private.py, copy the example instead:",
             file=sys.stderr,
         )
-        print("  cp tests/test_servers.yaml.example tests/test_servers.yaml", file=sys.stderr)
+        print("  cp tests/caldav_test_servers.yaml.example tests/caldav_test_servers.yaml", file=sys.stderr)
         sys.exit(1)
 
     print(f"Loading {input_path}...")
