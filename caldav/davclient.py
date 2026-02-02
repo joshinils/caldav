@@ -507,7 +507,7 @@ class DAVClient(BaseDAVClient):
             principal = client.get_principal()
             calendars = client.get_calendars(principal)
             for cal in calendars:
-                print(f"Calendar: {cal.name}")
+                print(f"Calendar: {cal.get_display_name()}")
         """
         from caldav.operations.calendarset_ops import (
             _extract_calendars_from_propfind_results as extract_calendars,

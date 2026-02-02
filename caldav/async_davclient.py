@@ -936,7 +936,7 @@ class AsyncDAVClient(BaseDAVClient):
             principal = await client.get_principal()
             calendars = await client.get_calendars(principal)
             for cal in calendars:
-                print(f"Calendar: {cal.name}")
+                print(f"Calendar: {cal.get_display_name()}")
         """
         from caldav.collection import Calendar
         from caldav.operations.calendarset_ops import (

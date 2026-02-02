@@ -1140,7 +1140,7 @@ robur = {
         'basepath': '/principals/', # TODO: this seems fishy
     },
     "save-load.journal": { "support": "ungraceful" },
-    "delete-calendar": { "support": "fragile" },
+    "delete-calendar": { "support": "unsupported" },
     "search.is-not-defined": { "support": "unsupported" },
     "search.time-range.todo": { "support": "unsupported" },
     "search.time-range.alarm": {'support': 'unsupported'},
